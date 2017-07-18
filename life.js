@@ -34,6 +34,7 @@ function drawGrid() {
     }
 }
 
+
 function fill(x, y) {
     ctx.fillStyle = '#40e0d0';
     ctx.rect(x * cellWidth, y * cellWidth, cellWidth, cellWidth);
@@ -72,7 +73,66 @@ function parseMap(map) {
 }
 
 
-let world = parseMap(`
+class World {
+    constructor(map) {
+        this.map = map;
+    }
+
+    draw() {
+        for (var y = 0; y < rowCount; y++)
+            for (var x = 0; x < colCount; x++)
+                if (this.map[y * colCount + x])
+                    fill(x, y);
+    }
+
+    checkCell(x, y) {
+        if (x < 0 || x >= colCount || y < 0 || y >= rowCount)
+            return 0;
+        return this.map[y * colCount + x];
+    }
+
+    aliveNeighbour(x, y) {
+        return (
+            this.checkCell(x-1, y-1) +
+            this.checkCell(x,   y-1) +
+            this.checkCell(x+1, y-1) +
+
+            this.checkCell(x-1, y) +
+            this.checkCell(x+1, y) +
+
+            this.checkCell(x-1, y+1) +
+            this.checkCell(x,   y+1) +
+            this.checkCell(x+1, y+1)
+        );
+    }
+
+    tick() {
+        var newMap = this.map.slice();
+
+        for (var y = 0; y < rowCount; y++)
+            for (var x = 0; x < colCount; x++) {
+                var nc = this.aliveNeighbour(x, y);
+                if (this.map[y * colCount + x]) {  // alive
+                    // any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
+                    if (nc < 2)
+                        newMap[y * colCount + x] = 0;
+                    // any live cell with more than three live neighbours dies, as if by overpopulation.
+                    else if (nc > 3)
+                        newMap[y * colCount + x] = 0;
+                    // any live cell with two or three live neighbours lives on to the next generation.
+                } else {  // dead
+                    // any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+                    if (nc == 3)
+                        newMap[y * colCount + x] = 1;
+                }
+            }
+
+        this.map = newMap;
+    }
+}
+
+
+let map = parseMap(`
 ________________________________________________
 ________________________________________________
 ________________________________________________
@@ -116,74 +176,12 @@ ________________________________________________
 `);
 
 
-function drawWorld(world) {
-    for (var y = 0; y < rowCount; y++)
-        for (var x = 0; x < colCount; x++)
-            if (world[y * colCount + x])
-                fill(x, y);
-}
+let world = new World(map);
 
 
-
-function neighbourCount(x, y) {
-    function checkCell(x, y) {
-        if (x < 0 || x >= colCount || y < 0 || y >= rowCount)
-            return 0;
-        var ret = world[y * colCount + x];
-        return ret;
-    }
-
-    return (
-        checkCell(x-1, y-1) +
-        checkCell(x,   y-1) +
-        checkCell(x+1, y-1) +
-
-        checkCell(x-1, y) +
-        checkCell(x+1, y) +
-
-        checkCell(x-1, y+1) +
-        checkCell(x,   y+1) +
-        checkCell(x+1, y+1)
-    );
-}
-
-
-function worldTick() {
-    var newWorld = world.slice();
-
-    for (var y = 0; y < rowCount; y++)
-        for (var x = 0; x < colCount; x++) {
-            if (world[y * colCount + x]) {
-                // alive
-                var nc = neighbourCount(x, y);
-                // any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
-                if (nc < 2) {
-                    newWorld[y * colCount + x] = 0;
-                }
-                // any live cell with more than three live neighbours dies, as if by overpopulation.
-                else if (nc > 3) {
-                    newWorld[y * colCount + x] = 0;
-                }
-                // any live cell with two or three live neighbours lives on to the next generation.
-            } else {
-                // dead
-                var nc = neighbourCount(x, y);
-
-                // any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-                if (nc == 3) {
-                    newWorld[y * colCount + x] = 1;
-                }
-            }
-        }
-
-    world = newWorld;
-}
-
-function tick() {
+rAFInterval(() => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawGrid();
-    drawWorld(world);
-    worldTick();
-}
-
-rAFInterval(tick, 100);
+    world.draw();
+    world.tick();
+}, 100);
