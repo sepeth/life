@@ -11,12 +11,10 @@ canvas.height = colCount * cellWidth;
 
 
 function parseMap(map) {
-    let lines = map.split('\n');
+    let lines = map.split('\n').filter(l => l.trim() != "");
     let ret = [];
     lines.forEach((line, idx) => {
         line = line.trim();
-        if (line == "")
-            return;
         for (var i = 0; i < line.length; i++) {
             ret.push(line[i] == "X" ? 1 : 0);
         }
@@ -24,6 +22,10 @@ function parseMap(map) {
             ret.push(0);
         }
     });
+    var missingLines = (rowCount - lines.length) * colCount;
+    for (var i = 0; i < missingLines; i++) {
+        ret.push(0);
+    }
     return ret;
 }
 
