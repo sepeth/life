@@ -10,51 +10,6 @@ canvas.width = rowCount * cellWidth;
 canvas.height = colCount * cellWidth;
 
 
-function drawGrid() {
-    // Set the style of the grid lines
-    ctx.strokeStyle = '#40e0d0';
-    ctx.lineWidth = 0.25;
-
-    // Draw vertical lines
-    for (var i = cellWidth; i < canvas.width; i += cellWidth) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, canvas.height);
-        ctx.closePath();
-        ctx.stroke();
-    }
-
-    // Draw horizontal lines
-    for (var i = cellWidth; i < canvas.height; i += cellWidth) {
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(canvas.width, i);
-        ctx.closePath();
-        ctx.stroke();
-    }
-}
-
-
-function fill(x, y) {
-    ctx.fillStyle = '#40e0d0';
-    ctx.rect(x * cellWidth, y * cellWidth, cellWidth, cellWidth);
-    ctx.fill();
-}
-
-
-function rAFInterval(fn, delay) {
-    var start = window.performance.now();
-    function loop(time) {
-        requestAnimationFrame(loop);
-        if (time - start >= delay) {
-            fn();
-            start = window.performance.now();
-        }
-    }
-    requestAnimationFrame(loop);
-}
-
-
 function parseMap(map) {
     let lines = map.split('\n');
     let ret = [];
@@ -73,6 +28,62 @@ function parseMap(map) {
 }
 
 
+function rAFInterval(fn, delay) {
+    var start = window.performance.now();
+    var handle = {};
+    function loop(time) {
+        handle.value = requestAnimationFrame(loop);
+        if (time - start >= delay) {
+            fn();
+            start = window.performance.now();
+        }
+    }
+    handle.value = requestAnimationFrame(loop);
+    return handle;
+}
+
+
+var Canvas = {
+    clear: function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    },
+
+    drawGrid: function() {
+        // Set the style of the grid lines
+        ctx.strokeStyle = '#40e0d0';
+        ctx.lineWidth = 0.25;
+
+        // Draw vertical lines
+        for (var i = cellWidth; i < canvas.width; i += cellWidth) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, canvas.height);
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        // Draw horizontal lines
+        for (var i = cellWidth; i < canvas.height; i += cellWidth) {
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(canvas.width, i);
+            ctx.closePath();
+            ctx.stroke();
+        }
+    },
+
+    fill: function (x, y) {
+        ctx.fillStyle = '#40e0d0';
+        ctx.fillRect(x * cellWidth, y * cellWidth, cellWidth, cellWidth);
+    },
+
+    clearCell: function(x, y) {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x * cellWidth + .25, y * cellWidth + .25, cellWidth - .5, cellWidth - .5);
+    }
+};
+
+
 class World {
     constructor(map) {
         this.map = map;
@@ -82,7 +93,7 @@ class World {
         for (var y = 0; y < rowCount; y++)
             for (var x = 0; x < colCount; x++)
                 if (this.map[y * colCount + x])
-                    fill(x, y);
+                    Canvas.fill(x, y);
     }
 
     checkCell(x, y) {
@@ -176,12 +187,39 @@ ________________________________________________
 `);
 
 
-let world = new World(map);
+class App {
+    constructor() {
+        this.world = new World(map);
+
+        btnPlay.addEventListener('click', _evt => {
+            this.start();
+            this.editMode = false;
+            btnPlay.style.display = 'none';
+            btnPause.style.display = 'inline';
+        });
+
+        btnPause.addEventListener('click', _evt => {
+            this.stop();
+            btnPlay.style.display = 'inline';
+            btnPause.style.display = 'none';
+        });
+    }
+
+    tick() {
+        Canvas.clear();
+        Canvas.drawGrid();
+        this.world.draw();
+        this.world.tick();
+    }
+
+    start() {
+        this.rafHandle = rAFInterval(() => this.tick(), 100);
+    }
+
+    stop() {
+        window.cancelAnimationFrame(this.rafHandle.value);
+    }
+}
 
 
-rAFInterval(() => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawGrid();
-    world.draw();
-    world.tick();
-}, 100);
+new App().start();

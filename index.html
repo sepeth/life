@@ -23,7 +23,15 @@
         text-align: center;
       }
 
-      canvas {
+      #controls {
+        margin: 10px 0;
+      }
+
+      #controls button {
+        border: 1px solid #40e0d0;
+        color: #40e0d0;
+        background: #fff;
+        width: 70px;
       }
     </style>
   </head>
@@ -31,7 +39,16 @@
     <div id="container">
       <h1>⁓&nbsp; Game of Life &nbsp;⁓</h1>
       <canvas id="canvas"></canvas>
+      <div id="controls">
+        <button id="btnPlay" style="display: none">
+          <i class="fa fa-play"></i> Play
+        </button>
+        <button id="btnPause">
+          <i class="fa fa-pause"></i> Pause
+        </button>
+      </div>
     </div>
+    <script src="https://use.fontawesome.com/69acd660b4.js" async></script>
     <script src="life.js"></script>
   </body>
 </html>
