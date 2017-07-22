@@ -142,6 +142,14 @@ class World {
 
         this.map = newMap;
     }
+
+    getMap() {
+        return this.map.slice();
+    }
+
+    setMap(map) {
+        this.map = map.slice();
+    }
 }
 
 
@@ -191,13 +199,24 @@ ________________________________________________
 
 class App {
     constructor() {
-        this.world = new World(map);
+        this.world = new World(map);  // Game of life implementation
+        this.editMode = false;        // is in edit mode or not
+        this.newMap = null;           // copy of the map if we are in edit mode
+        this.editFill = true;         // fill color, true == fill, false == clear
+        this.mouseDown = false;       // mouse is pressed while moving
+        this.prevX = -1;              // previous mouse coordinations
+        this.prevY = -1;
 
         btnPlay.addEventListener('click', _evt => {
-            this.start();
-            this.editMode = false;
             btnPlay.style.display = 'none';
             btnPause.style.display = 'inline';
+            if (this.editMode) {
+                this.editMode = false;
+                btnEditMap.disabled = false;
+                this.world.setMap(this.newMap);
+                this.newMap = null;
+            }
+            this.start();
         });
 
         btnPause.addEventListener('click', _evt => {
@@ -205,16 +224,103 @@ class App {
             btnPlay.style.display = 'inline';
             btnPause.style.display = 'none';
         });
+
+        btnEditMap.addEventListener('click', _evt => {
+            this.stop();
+            this.editMode = true;
+            btnEditMap.disabled = true;
+            this.newMap = this.world.getMap();
+            btnPlay.style.display = 'inline';
+            btnPause.style.display = 'none';
+        });
+
+        canvas.addEventListener('mousemove', evt => {
+            if (!this.editMode)
+                return;
+            var newX = Math.floor(evt.offsetX / 10);
+            var newY = Math.floor(evt.offsetY / 10);
+            if (this.mouseDown) {
+                this.colorCell(newX, newY);
+                this.prevX = -1;
+                this.prevY = -1;
+            } else {
+                if (this.prevX != newX || this.prevY != newY) {
+                    if (this.prevX != -1 && this.prevY != -1) {
+                        this.restoreCell(this.prevX, this.prevY);
+                    }
+                    this.flipCell(newX, newY);
+                    this.prevX = newX;
+                    this.prevY = newY;
+                }
+            }
+        });
+
+        canvas.addEventListener('mouseout', _evt => {
+            if (!this.editMode)
+                return;
+            if (this.prevX != -1 && this.prevY != -1) {
+                Canvas.clearCell(this.prevX, this.prevY);
+            }
+            this.prevX = -1;
+            this.prevY = -1;
+        });
+
+        canvas.addEventListener('mousedown', evt => {
+            if (!this.editMode)
+                return;
+            this.mouseDown = true;
+            var newX = Math.floor(evt.offsetX / 10);
+            var newY = Math.floor(evt.offsetY / 10);
+            this.editFill = !this.newMap[newY * colCount + newX];
+            this.colorCell(newX, newY);
+        });
+
+        canvas.addEventListener('mouseup', evt => {
+            if (!this.editMode)
+                return;
+            this.mouseDown = false;
+        });
+    }
+
+    colorCell(x, y) {
+        if (this.editFill) {
+            Canvas.fill(x, y);
+            this.newMap[y * colCount + x] = 1;
+        } else {
+            Canvas.clearCell(x, y);
+            this.newMap[y * colCount + x] = 0;
+        }
+    }
+
+    flipCell(x, y) {
+        if (this.newMap[y * colCount + x]) {
+            Canvas.clearCell(x, y);
+        } else {
+            Canvas.fill(x, y);
+        }
+    }
+
+    restoreCell(x, y) {
+        if (this.newMap[y * colCount + x]) {
+            Canvas.fill(x, y);
+        } else {
+            Canvas.clearCell(x, y);
+        }
     }
 
     tick() {
+        this.world.tick();
+        this.draw();
+    }
+
+    draw() {
         Canvas.clear();
         Canvas.drawGrid();
         this.world.draw();
-        this.world.tick();
     }
 
     start() {
+        this.draw();
         this.rafHandle = rAFInterval(() => this.tick(), 100);
     }
 
