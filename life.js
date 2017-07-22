@@ -99,8 +99,16 @@ class World {
     }
 
     checkCell(x, y) {
-        if (x < 0 || x >= colCount || y < 0 || y >= rowCount)
-            return 0;
+        if (x < 0) {
+            x = x + colCount;
+        } else if (x >= colCount) {
+            x = x % colCount;
+        }
+        if (y < 0) {
+            y = y + rowCount;
+        } else if (y >= rowCount) {
+            y = y % rowCount;
+        }
         return this.map[y * colCount + x];
     }
 
